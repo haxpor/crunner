@@ -9,6 +9,7 @@ use web3::{
     contract::{Contract, Options, tokens::{Detokenize, Tokenizable}},
 };
 use regex::Regex;
+use std::io::Read;
 
 /// RPC endpoint of BSC chain
 pub(crate) static BSC_RPC_ENDPOINT: &str = "https://bsc-dataseed.binance.org/";
@@ -221,6 +222,38 @@ pub fn create_contract(web3: &Web3<Http>, contract_address_str: &str, abi_str: &
     }
 }
 
+/// Create a contract
+///
+/// # Arguments
+/// * `web3` - web3 instance
+/// * `contract_address_str` - contract address string
+/// * `abi_filepath` - ABI json filepath
+pub fn create_contract_from_abifile(web3: &Web3<Http>, contract_address_str: &str, abi_filepath: &str) -> Result<Contract<Http>, String> {
+    if !validate_address_format(contract_address_str) {
+        let err_msg = format!("Error address is in wrong format ({}).", contract_address_str);
+        return Err(err_msg);
+    }
+    let contract_address_hbytes = match hex::decode(&contract_address_str[2..]) {
+        Ok(res) => res,
+        Err(e) => return Err(format!("Error converting from literal string of contract address into hex bytes; err={}", e)),
+    };
+    let contract_address: Address = Address::from_slice(contract_address_hbytes.as_slice());
+
+    let mut abi_buffer = Vec::<u8>::new();
+    if let Err(e) = read_abi(abi_filepath, &mut abi_buffer) {
+        return Err(format!("Error reading abi file at '{}'", abi_filepath));
+    }
+
+    // create a contract from contract address, and abi
+    match Contract::from_json(web3.eth(), contract_address, abi_buffer.as_slice()) {
+        Ok(res) => Ok(res),
+        Err(e) => {
+            let err_msg = format!("Error creating contract associated with abi for {}; err={}", contract_address_str, e);
+            Err(err_msg)
+        }
+    }
+}
+
 /// Prepare parameters for supplying to smart contract's method.
 ///
 /// # Arguments
@@ -390,4 +423,24 @@ pub fn measure_end(start: &std::time::Instant, also_print: bool) -> f64 {
         println!("(elapsed = {:.2} secs)", elapsed);
     }
     elapsed
+}
+
+/// Read input abi specification from file.
+/// If error occurs, return `Result` with type of `std::io::Error`, and output `out`
+/// won't be touched at all.
+///
+/// # Arguments
+/// * `filepath` - file path of abi json file to read from
+/// * `out` - output of file content read in as byte array
+pub fn read_abi(filepath: &str, out: &mut Vec::<u8>) -> std::result::Result<(), std::io::Error> {
+    let f = std::fs::File::open(filepath);
+    if let Err(e) = f {
+        return Err(e);
+    }
+    let mut reader = std::io::BufReader::new(f.unwrap());
+    if let Err(e) = reader.read_to_end(out) {
+        return Err(e);
+    }
+
+    Ok(())
 }

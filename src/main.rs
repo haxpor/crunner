@@ -6,9 +6,8 @@ mod util;
 use types::*;
 use util::*;
 
-// to avoid having to relying on reading external file
-// // currently contains "name", "decimals", "allowance", and "approve" (this one is not used yet)
-static ABI_STR: &'static str = r#"[{"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"stateMutability":"view","type":"function"},{"name":"allowance","inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"}],"outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"name":"approve","inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}]"#;
+use web3::contract::Contract;
+use web3::transports::http::Http;
 
 #[tokio::main]
 async fn main() {
@@ -47,13 +46,18 @@ async fn main() {
     }
 
     // create a contract instance
-    let contract = match create_contract(&web3, &cmd_args.contract_address, &ABI_STR) {
-        Ok(res) => res,
-        Err(e) => {
-            eprintln!("{}", format!("Error creating a contract instance; err={}", e));
-            std::process::exit(1);
-        }
-    };
+    let mut contract: Option<Contract<Http>> = None;
+
+    // only create a contract instance if it's not RPC-ETH call
+    if !cmd_args.rpc_eth {
+        contract = match create_contract_from_abifile(&web3, &cmd_args.contract_address, &cmd_args.abi_filepath.unwrap()) {
+            Ok(res) => Some(res),
+            Err(e) => {
+                eprintln!("{}", format!("Error creating a contract instance; err={}", e));
+                std::process::exit(1);
+            }
+        };
+    }
 
     // for setter (estimate gas - dry run only)
     if cmd_args.dry_run_estimate_gas {
@@ -71,7 +75,7 @@ async fn main() {
 
         let estimate_gas_from_addr = cmd_args.estimate_gas_from_addr.unwrap();
 
-        let est_gas_used = web3_query_estimate_gas(&contract, &cmd_args.fn_name, cmd_args.params.as_slice(), &estimate_gas_from_addr).await;
+        let est_gas_used = web3_query_estimate_gas(&contract.unwrap(), &cmd_args.fn_name, cmd_args.params.as_slice(), &estimate_gas_from_addr).await;
         let f_est_gas_used: f64;
         let estimated_gas_used: U256;
         match est_gas_used {
@@ -124,7 +128,7 @@ async fn main() {
     }
     // for setter
     else if cmd_args.ensure_setter {
-        let tx_receipt_res = web3_query_set(&contract, &cmd_args.fn_name, &cmd_args.params.as_slice(), cmd_args.block_confirmations).await;
+        let tx_receipt_res = web3_query_set(&contract.unwrap(), &cmd_args.fn_name, &cmd_args.params.as_slice(), cmd_args.block_confirmations).await;
         match tx_receipt_res {
             Ok(tx_receipt) => {
                 println!("{:?}", tx_receipt.transaction_hash);
@@ -180,7 +184,7 @@ async fn main() {
         // make a call to specified function of the target smart contract
         // FIXME: this should be more concise and shorter code...
         if ret_type_str == "String" {
-            let res = web3_query_get::<String>(&contract, &cmd_args.fn_name, cmd_args.params.as_slice()).await;
+            let res = web3_query_get::<String>(&contract.unwrap(), &cmd_args.fn_name, cmd_args.params.as_slice()).await;
             match res {
                 Ok(res) => println!("{}", res),
                 Err(e) => {
@@ -190,7 +194,7 @@ async fn main() {
             }
         }
         else if ret_type_str == "U256" {
-            let res = web3_query_get::<U256>(&contract, &cmd_args.fn_name, cmd_args.params.as_slice()).await;
+            let res = web3_query_get::<U256>(&contract.unwrap(), &cmd_args.fn_name, cmd_args.params.as_slice()).await;
             match res {
                 Ok(res) => println!("{:?}", res),
                 Err(e) => {

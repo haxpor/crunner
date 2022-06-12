@@ -49,9 +49,8 @@ pub struct CommandlineArgs {
     #[clap(long="block-confirmations", multiple_values=false, takes_value=true, default_value="20", required_if_eq("ensure-setter", "true"))]
     pub block_confirmations: u64,
 
-    /// Optional of additional ABI filepath to combine with the default one
-    /// that the program provides.
-    #[clap(long="abi-filepath", multiple_values=false, takes_value=true, required=false)]
+    /// ABI filepath to combine with the default one
+    #[clap(long="abi-filepath", multiple_values=false, takes_value=true, required_unless_present="rpc-eth")]
     pub abi_filepath: Option<String>,
 }
 
