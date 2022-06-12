@@ -120,6 +120,7 @@ async fn main() {
     // for setter (rpc-eth)
     else if cmd_args.ensure_setter && cmd_args.rpc_eth {
         // nothing for now...
+        println!("Not support right now");
     }
     // for setter
     else if cmd_args.ensure_setter {
