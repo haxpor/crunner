@@ -78,9 +78,3 @@ pub enum FnParamType {
     HU256,
     DU256,
 }
-
-/// Result type returning from querying of smart contract's function
-pub enum FnResultType {
-    String,
-    U256,
-}
