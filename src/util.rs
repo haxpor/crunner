@@ -240,7 +240,7 @@ pub fn create_contract_from_abifile(web3: &Web3<Http>, contract_address_str: &st
     let contract_address: Address = Address::from_slice(contract_address_hbytes.as_slice());
 
     let mut abi_buffer = Vec::<u8>::new();
-    if let Err(e) = read_abi(abi_filepath, &mut abi_buffer) {
+    if let Err(_e) = read_abi(abi_filepath, &mut abi_buffer) {
         return Err(format!("Error reading abi file at '{}'", abi_filepath));
     }
 
