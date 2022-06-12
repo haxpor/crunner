@@ -19,7 +19,7 @@ pub struct CommandlineArgs {
 
     /// Function name of target smart contract to make a call to.
     /// To make a query to basic RPC-ETH call, then supply --rpc-eth flag.
-    #[clap(long="fn-name", short='f', required=true, multiple_values=false, required_unless_present="rpc-eth")]
+    #[clap(long="fn-name", short='f', required=true, multiple_values=false)]
     pub fn_name: String,
 
     #[clap(long="rpc-eth", multiple_values=false, default_missing_value="true", takes_value=false, conflicts_with_all=&["ensure-setter", "dry-run-estimate-gas"])]
