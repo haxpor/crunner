@@ -22,6 +22,7 @@ pub struct CommandlineArgs {
     #[clap(long="fn-name", short='f', required=true, multiple_values=false)]
     pub fn_name: String,
 
+    /// Toggle the RPC-ETH call then --fn-name provides the name of query.
     #[clap(long="rpc-eth", multiple_values=false, default_missing_value="true", takes_value=false, conflicts_with_all=&["ensure-setter", "dry-run-estimate-gas"])]
     pub rpc_eth: bool,
 
@@ -38,7 +39,7 @@ pub struct CommandlineArgs {
     pub params: Vec<String>,
 
     /// Dry run to estimate gas used for setter method.
-    /// It needs `ensure_setter` to be set.
+    /// It needs --ensure-setter to be set.
     #[clap(long="dry-run-estimate-gas", multiple_values=false, default_missing_value="true", takes_value=false)]
     pub dry_run_estimate_gas: bool,
     
@@ -46,10 +47,11 @@ pub struct CommandlineArgs {
     #[clap(long="estimate-gas-from-addr", multiple_values=false, takes_value=true, required_if_eq("dry-run-estimate-gas", "true"))]
     pub estimate_gas_from_addr: Option<String>,
 
+    /// Number of block confirmations when making call to setter methods
     #[clap(long="block-confirmations", multiple_values=false, takes_value=true, default_value="20", required_if_eq("ensure-setter", "true"))]
     pub block_confirmations: u64,
 
-    /// ABI filepath to combine with the default one
+    /// ABI filepath to describe function signatures of smart contract
     #[clap(long="abi-filepath", multiple_values=false, takes_value=true, required_unless_present="rpc-eth")]
     pub abi_filepath: Option<String>,
 }
